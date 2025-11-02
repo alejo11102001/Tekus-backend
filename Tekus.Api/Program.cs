@@ -1,5 +1,18 @@
+using Microsoft.EntityFrameworkCore;
+using Tekus.Domain.Interfaces;
+using Tekus.Infrastructure.Data;
+using Tekus.Infrastructure.Repositories;
+
 var builder = WebApplication.CreateBuilder(args);
 
+var conn = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlServer(conn));
+
+// DI: repositorios (infrastructure) e interfaces (domain) + servicios de aplicacion
+builder.Services.AddScoped<IProviderRepository, ProviderRepository>();
+builder.Services.AddScoped<Tekus.Application.Services.IProviderAppService, Tekus.Application.Services.ProviderAppService>();
+
+builder.Services.AddControllers();
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -14,7 +27,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+    await Tekus.Infrastructure.Data.DataSeeder.SeedAsync(db);
+}
+
 app.UseHttpsRedirection();
+app.MapControllers();
 
 var summaries = new[]
 {
