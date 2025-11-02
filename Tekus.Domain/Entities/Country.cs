@@ -1,15 +1,18 @@
-﻿namespace Tekus.Domain.Entities;
-
-public class Country
+﻿namespace Tekus.Domain.Entities
 {
-    public int Id { get; private set; }
-    public string IsoCode { get; private set; }
-    public string Name { get; private set; }
-
-    protected Country() {}
-    public Country(string isoCode, string name)
+    public class Country
     {
-        IsoCode = isoCode;
-        Name = name;
+        public int Id { get; set; }
+        public string IsoCode { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+
+        public Country(string isoCode, string name)
+        {
+            IsoCode = isoCode;
+            Name = name;
+        }
+
+        // Constructor vacío para EF
+        public Country() { }
     }
 }

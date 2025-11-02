@@ -1,24 +1,94 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using Tekus.Application.Services;
 using Tekus.Domain.Interfaces;
 using Tekus.Infrastructure.Data;
 using Tekus.Infrastructure.Repositories;
+using Tekus.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+var configuration = builder.Configuration;
 
-var conn = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlServer(conn));
+builder.Services.AddDbContext<AppDbContext>(opts =>
+    opts.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
-// DI: repositorios (infrastructure) e interfaces (domain) + servicios de aplicacion
+builder.Services.AddHttpClient();
+
 builder.Services.AddScoped<IProviderRepository, ProviderRepository>();
-builder.Services.AddScoped<Tekus.Application.Services.IProviderAppService, Tekus.Application.Services.ProviderAppService>();
-
-builder.Services.AddControllers();
+builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
+builder.Services.AddScoped<IProviderAppService, ProviderAppService>();
+builder.Services.AddScoped<IServiceAppService, ServiceAppService>();
+builder.Services.AddScoped<ICountryService, CountryService>();
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var key = builder.Configuration["Jwt:Key"];
+var issuer = builder.Configuration["Jwt:Issuer"];
+var audience = builder.Configuration["Jwt:Audience"];
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = issuer,
+            ValidAudience = audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
+        };
+    });
+
+// --- SWAGGER CONFIG ---
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Tekus API", Version = "v1" });
+    
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Introduce el token JWT de esta forma: Bearer {tu token}"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+builder.Services.AddAuthorization();
+
+builder.Services.AddControllers();
+
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+    await DataSeeder.SeedAsync(db);
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -35,6 +105,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 
 var summaries = new[]

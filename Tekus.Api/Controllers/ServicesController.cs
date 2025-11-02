@@ -7,13 +7,13 @@ namespace Tekus.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ProvidersController : ControllerBase
+public class ServicesController : ControllerBase
 {
-    private readonly IProviderAppService _svc;
-    public ProvidersController(IProviderAppService svc) => _svc = svc;
+    private readonly IServiceAppService _svc;
+    public ServicesController(IServiceAppService svc) => _svc = svc;
 
     [HttpGet]
-    public async Task<IActionResult> Get([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string q = "", [FromQuery] string orderBy = "name")
+    public async Task<IActionResult> Get([FromQuery]int page = 1, [FromQuery]int pageSize = 10, [FromQuery]string q = "", [FromQuery]string orderBy = "name")
     {
         var res = await _svc.ListAsync(page, pageSize, q, orderBy);
         return Ok(res);
@@ -22,14 +22,14 @@ public class ProvidersController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var p = await _svc.GetByIdAsync(id);
-        if (p == null) return NotFound();
-        return Ok(p);
+        var s = await _svc.GetByIdAsync(id);
+        if (s == null) return NotFound();
+        return Ok(s);
     }
 
     [Authorize]
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateProviderDto dto)
+    public async Task<IActionResult> Create([FromBody] CreateServiceDto dto)
     {
         var created = await _svc.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
@@ -37,7 +37,7 @@ public class ProvidersController : ControllerBase
 
     [Authorize]
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] CreateProviderDto dto)
+    public async Task<IActionResult> Update(int id, [FromBody] CreateServiceDto dto)
     {
         await _svc.UpdateAsync(id, dto);
         return NoContent();
@@ -48,14 +48,6 @@ public class ProvidersController : ControllerBase
     public async Task<IActionResult> Delete(int id)
     {
         await _svc.DeleteAsync(id);
-        return NoContent();
-    }
-
-    [Authorize]
-    [HttpPost("{id}/customfields")]
-    public async Task<IActionResult> AddCustomField(int id, [FromBody] KeyValuePair<string,string> body)
-    {
-        await _svc.AddCustomFieldAsync(id, body.Key, body.Value);
         return NoContent();
     }
 }

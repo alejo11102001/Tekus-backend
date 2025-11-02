@@ -9,4 +9,5 @@ public interface IProviderAppService
     Task<ProviderDto> CreateAsync(CreateProviderDto dto);
     Task UpdateAsync(int id, CreateProviderDto dto);
     Task DeleteAsync(int id);
+    Task AddCustomFieldAsync(int providerId, string key, string value);
 }
