@@ -23,7 +23,7 @@ The system allows:
 - [Next Steps / Frontend Integration](#next-steps--frontend-integration)
 
 ## Tech Stack
-- **Backend:** .NET 7, C#
+- **Backend:** .NET 8, C#
 - **ORM:** Entity Framework Core
 - **Database:** SQL Server 2018+
 - **Authentication:** JWT Bearer Token
